@@ -6,9 +6,11 @@ const modCommands = require('./mod');
 const utils = require('./utils');
 const sfxCommands = require('./sfx');
 const queueCommands = require('./queue');
-const es = require('./elastic');
+const xpCommands = require('./xp');
+const api = require('./api');
 const moment = require('moment');
 const defaultTarget = '#synrj';
+require('./events');
 
 require('log-timestamp')(function() { return '[' + moment().format("YYYY-MM-DD HH:mm:ss")  + '] %s' });;
 
@@ -18,9 +20,17 @@ const client = new tmi.client(config.twitch);
 // Connect to Twitch:
 client.connect()
 
+// Twitch API
+api.main();
+
+xpCommands.initOverview();
+
 // Intervals
 setInterval(() => sfxCommands.process(), 200);
+setInterval(() => xpCommands.processTick(), 1 * 60 * 1000); // 1 minute
+// setInterval(() => xpCommands.process(),  1000); // 1 second
 setInterval(() => print(miscCommands.timerCommand()), 30 * 60 * 1000); // 30 minutes
+setInterval(() => xpCommands.getXpOverview(), 5 * 60 * 1000); // 5 minutes
 
 // Event handlers
 client.on('message', onMessageHandler);
@@ -40,7 +50,6 @@ function onEmoteOnlyHandler (channel, enabled) {
 
 function onMessageHandler (target, context, msg, self) {
   if (self) { return; }
-
   const command = msg.trim();
   var user = context.username;
 
@@ -50,8 +59,8 @@ function onMessageHandler (target, context, msg, self) {
   }
   
   if (!utils.isValidCommand(command))
-  {    
-    es.indexChatMessage(user, null, 'message');
+  {
+    xpCommands.processMessage(user, null, "message");
     return;
   }
 
@@ -64,7 +73,7 @@ function onMessageHandler (target, context, msg, self) {
 
   if (mod && modCommands.isValidCommand(commandName))
   {
-    print(modCommands.process(user, commandName));
+    print(modCommands.process(user, commandName, args));
     return;
   }
 
@@ -76,8 +85,20 @@ function onMessageHandler (target, context, msg, self) {
 
   if (sfxCommands.isValidCommand(commandName))
   {
-    sfxCommands.addToQueue(commandName, args); 
+    sfxCommands.addToQueue(commandName, args, user); 
     return;
+  }
+
+  if (commandName === '!first')
+  {
+    if (user === vars.eliteUsers[0])
+    {
+      sfxCommands.addToQueue(commandName, args, user); 
+    } 
+    else 
+    {
+      print(`Seul ${user} peut utiliser cette commande, c'est lui le patron !`);
+    }
   }
   
   if (utils.isBotCommand(command))
@@ -102,19 +123,21 @@ function onConnectedHandler (addr, port) {
 }
 
 function print(response) {
+  if (response == null || response == '')
+  {
+    return;
+  }
+
   response = `/me ${response}`;
   client.say(defaultTarget, response);
   console.log(`OUT: ${response}`);
 }
 
+events.on('print', function(message) {
+  print(message);
+});
+
 process.on('exit', function () {
+  console.log('exit');
   utils.cleanUp();
-});
-
-process.on('SIGINT', function() {
-  process.exit();
-});
-
-process.on('SIGTERM', function() {
-  process.exit();
 });

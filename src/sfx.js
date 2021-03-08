@@ -1,10 +1,12 @@
 const vars = require('./vars');
+const config = require('./config');
 const utils = require('./utils');
-const es = require('./elastic');
+const db = require('./db');
+const xpCommands = require('./xp');
 const fs = require('fs');
 const player = require('play-sound')(({player: "cmdmp3win"}));
-const helloSoundsDirectory = `C:\\Users\\Gael\\Desktop\\streaming\\sounds\\sounds\\hello\\`;
-const soundsDirectory = `C:\\Users\\Gael\\Desktop\\streaming\\sounds\\sounds\\`;
+const helloSoundsDirectory = config.paths.helloSounds;
+const soundsDirectory = config.paths.sounds;
 const soundDelay = 3000;
 var commandsList = [];
 var soundLastExec = 0;
@@ -14,7 +16,7 @@ var audio = null;
 
 async function initCommands()
 {
-  commandsList = await es.fetchCommands(vars.commandCategories.SFX);
+  commandsList = await db.fetchCommands(vars.commandCategories.SFX);
 }
 
 function isValidCommand(command)
@@ -77,6 +79,10 @@ function kill()
     audio.kill();  
     return utils.getRandom(vars.killSFXPhrases);
   }
+  else
+  {
+    return "n'a trouvé aucun SFX qui méritait son châtiment divin.";
+  }
 }
 
 function clearQueue() 
@@ -90,7 +96,7 @@ function clearQueue()
 
 function addToQueue(commandName, args, user)
 {
-  es.indexChatMessage(user, commandName, "sfx");
+  xpCommands.processMessage(user, commandName, "sfx");
   var file = commandsList[commandName];
   soundQueue.push(new SoundCommand(commandName, file, args));   
 }
@@ -146,5 +152,6 @@ module.exports = {
   kill,
   clearQueue,
   isValidCommand,
-  initCommands
+  initCommands,
+  playSoundCommand
 };

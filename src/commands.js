@@ -1,7 +1,9 @@
 const utils = require('./utils');
 const vars = require('./vars');
-const es = require('./elastic');
+const db = require('./db');
+const xpCommands = require('./xp');
 
+var link = "ne semble pas connaître le lien non plus... " + utils.getRandom(vars.beepboopPhrases);
 var timerIndex = 0;
 
 async function process(commandName, user, args) 
@@ -10,7 +12,7 @@ async function process(commandName, user, args)
 
   if (commandName === '!commands' || commandName === '!commandes' || commandName === '!cmd' || commandName === '!sfx' || commandName === '!sounds' || commandName === '!sons') 
   {    
-    phrase = `Liste des commandes et SFX : https://synrj.streaming.lv/?commands`;
+    phrase = `Liste des commandes et SFX : https://synrj.tv`;
   } 
   else if (commandName === '!ctb' || commandName === '!cmb' || commandName === '!ctc') 
   {
@@ -20,6 +22,10 @@ async function process(commandName, user, args)
   {
     phrase = `On entend distinctement le doux son d'un caillou...`;
   } 
+  // else if (commandName === '!mods') 
+  // {
+  //   phrase = `Mods du Mordoeuf 3.0 : Extra Equip Slots, Global Positions, Achivements and Level System (modifié), No Thermal Stone Durability, Simple Health Bar, Wormhole Marks, Combined Status, Boss Indicators, Geometric Placement, Minimap HUD`;
+  // } 
   else if (commandName === '!discord') 
   {
     phrase = `Le discord de SynRJ est disponible par ici : https://discord.gg/PaZbKcX Discussions, clips et les dernières infos sur la chaîne !`;
@@ -34,16 +40,36 @@ async function process(commandName, user, args)
   }
   else if (commandName === '!stats')
   {
-    phrase = await es.userStats(user);
+    phrase = await db.userStats(user);
+  }
+  else if (commandName === '!level' || commandName === '!lvl' || commandName === '!rank')
+  {
+    phrase = await db.xpUser(user);
+  }
+  else if (commandName === '!top')
+  {
+    phrase = await db.xpTop();
   }
   else if (commandName === '!tchat')
   {
-    phrase = await es.top();
+    phrase = await db.top();
+  }
+  else if (commandName === '!lien' || commandName === '!link')
+  {
+    if (args.length > 1)
+    {
+      link = args[1];
+      phrase = "met le lien de côté, juste au cas où."
+    }
+    else 
+    {
+      phrase = "balance le lien : " + link;
+    }
   }
 
   if (phrase != null)
   {
-    es.indexChatMessage(user, commandName, "text");
+    xpCommands.processMessage(user, commandName, "text");
   }
 
   return phrase;
@@ -63,22 +89,27 @@ function timerCommand()
 
 function botCommand(user)
 {
-  es.indexChatMessage(user, "oeufrobot", "text");
+  db.indexChatMessage(user, "oeufrobot", "text");
 
   var phrase = "";
+
   if (user === "synrj")
   {
-    phrase = `Oui Maître 😳`;
-  } 
+    return `Oui Maître 😳`;
+  }
+  else if (vars.eliteUsers.indexOf(user) >= 0)
+  {
+    phrase = utils.getRandom(vars.botElitePhrases);
+  }
   else 
   {
-    var phrase1 = utils.getRandom(vars.botPhrases);
-    phrase1 = phrase1.replace("$user", user);
-    var phrase2 = utils.getRandom(vars.beepboopPhrases);
-    phrase = `${phrase1}. ${phrase2} 🤖`;
+    phrase = utils.getRandom(vars.botPhrases);
   }
 
-  return phrase;
+  phrase = phrase.replace("$user", user);
+  var beepboop = utils.getRandom(vars.beepboopPhrases);
+
+  return `${phrase}. ${beepboop} 🤖`;
 }
 
 function ctb (command) 

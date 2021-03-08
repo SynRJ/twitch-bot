@@ -1,11 +1,11 @@
-const es = require('./elastic');
+const xpCommands = require('./xp');
 const queueIsOffMessage = "semble dire que la file d'attente n'est pas lancée ou est en pause. \"!q start\" pour la démarrer.";
 var gameQueue = [];
 var queueOn = false;
 
 function process(args, user, mod)
 {
-  es.indexChatMessage(user, "!q", "queue");
+  xpCommands.processMessage(user, "!q", "queue");
 
   if (args.length === 1) 
   {    

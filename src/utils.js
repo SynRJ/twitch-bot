@@ -1,9 +1,18 @@
 const fs = require('fs');
-const emoteFolder = "C:\\Users\\Gael\\Desktop\\streaming\\img\\assets\\veggies\\";
+const vars = require('./vars');
+const config = require('./config');
+const emoteFolder = config.paths.emotes;
 
 function getRandom(list)
 {
   return list[list.length * Math.random() | 0];
+}
+
+function getRandomInt(min, max)
+{
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 function isValidCommand(command)
@@ -50,12 +59,50 @@ function cleanUp()
   swapToEmbossedEmote("eggplant");
 }
 
+function getRank(level)
+{  
+  for (var i = 0; i < vars.ranks.length; i++)
+  {
+    if (level >= vars.ranks[i].lvl)
+    {
+      return vars.ranks[i].name;
+    }
+  }
+}
+
+function getLevel(xp)
+{
+  var base = 1 + 8 * xp / 50;
+  var root = Math.sqrt(base);
+  var level = (1 + root) / 2;
+  return Math.floor(level);
+}
+
+function getRankEmoji(rank)
+{  
+  switch (rank)
+  {
+    case 1:
+      return '🥇';
+    case 2: 
+      return '🥈';
+    case 3: 
+      return '🥉';
+    default:
+      return '🎊';
+  }
+}
+
 module.exports = {
   getRandom,
+  getRandomInt,
   isValidCommand,
   commandExists,
   isEmoteCommand,
   isBotCommand,
   swapToColoredEmote,
-  cleanUp
+  cleanUp,
+  getRank,
+  getLevel,
+  getRankEmoji
 };
